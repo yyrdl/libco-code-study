@@ -22,9 +22,11 @@
 
 ## 相关知识
 
-*[X86 REGISTERS](https://en.wikibooks.org/wiki/X86_Assembly/X86_Architecture)
-*[FUNCTIONS and STACK FRAME](https://en.wikibooks.org/wiki/X86_Disassembly/Functions_and_Stack_Frames)
-*[计算机组成原理](http://product.dangdang.com/23793048.html)
+* [X86 REGISTERS](https://en.wikibooks.org/wiki/X86_Assembly/X86_Architecture)
+
+* [FUNCTIONS and STACK FRAME](https://en.wikibooks.org/wiki/X86_Disassembly/Functions_and_Stack_Frames)
+
+* [计算机组成原理](http://product.dangdang.com/23793048.html)
 
 
 # 源码注解
