@@ -20,7 +20,7 @@
 * 4.将EBP寄存器的值设为ESP寄存器保存的值
 * 5.在栈里为当前函数局部变量分配所需的空间，表现为修改ESP寄存器的值（一般是减4的整数倍,栈分配是从高地址向低地址分配）
 
-## 相关知识
+## 其他
 
 * [X86 REGISTERS](https://en.wikibooks.org/wiki/X86_Assembly/X86_Architecture)
 
