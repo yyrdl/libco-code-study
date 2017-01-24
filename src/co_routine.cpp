@@ -64,22 +64,22 @@ void co_log_err( const char *fmt,... )
 
 
 #if defined( __LIBCO_RDTSCP__)
-static unsigned long long counter(void)//»ñÈ¡ÒÑ¾­¾­ÀúµÄCPUÖÜÆÚÊı £¨64Î»£©
+static unsigned long long counter(void)//è·å–å·²ç»ç»å†çš„CPUå‘¨æœŸæ•° ï¼ˆ64ä½ï¼‰
 {
 	register uint32_t lo, hi;
 	register unsigned long long o;
-	//¸ß32Î»´æÔÚhiÀïÃæ£¬µÍ32Î»´æÔÚloÀïÃæ
+	//é«˜32ä½å­˜åœ¨hié‡Œé¢ï¼Œä½32ä½å­˜åœ¨loé‡Œé¢
 	__asm__ __volatile__ (
 			"rdtscp" : "=a"(lo), "=d"(hi)
 			);
 	o = hi;
 	o <<= 32;
-	return (o | lo);»¹Ô­³É64Î»ÕûĞÍ·µ»Ø
+	return (o | lo);è¿˜åŸæˆ64ä½æ•´å‹è¿”å›
 
 }
-// ÒÑ¾­ÀúµÄÊ±ÖÓÖÜÆÚÊı³ıÒÔCPUÆµÂÊµÃµ½ ÒÑ¾­ÀúµÄÊ±¼ä
+// å·²ç»å†çš„æ—¶é’Ÿå‘¨æœŸæ•°é™¤ä»¥CPUé¢‘ç‡å¾—åˆ° å·²ç»å†çš„æ—¶é—´
 
-static unsigned long long getCpuKhz()//»ñÈ¡CPU Ê±ÖÓËÙÂÊ£¬ÓÃÓÚ¼ÆËãÊ±¼ä
+static unsigned long long getCpuKhz()//è·å–CPU æ—¶é’Ÿé€Ÿç‡ï¼Œç”¨äºè®¡ç®—æ—¶é—´
 {
 	FILE *fp = fopen("/proc/cpuinfo","r");
 	if(!fp) return 1;
@@ -96,7 +96,7 @@ static unsigned long long getCpuKhz()//»ñÈ¡CPU Ê±ÖÓËÙÂÊ£¬ÓÃÓÚ¼ÆËãÊ±¼ä
 	}
 
 	double mhz = atof(lp);
-	unsigned long long u = (unsigned long long)(mhz * 1000);//´ÓMHz ×ªµ½ KHz
+	unsigned long long u = (unsigned long long)(mhz * 1000);//ä»MHz è½¬åˆ° KHz
 	return u;
 }
 #endif
@@ -104,10 +104,10 @@ static unsigned long long getCpuKhz()//»ñÈ¡CPU Ê±ÖÓËÙÂÊ£¬ÓÃÓÚ¼ÆËãÊ±¼ä
 static unsigned long long GetTickMS()
 {
 #if defined( __LIBCO_RDTSCP__)
-	static uint32_t khz = getCpuKhz();//ÕâÖÖ·½Ê½¸üÎª×¼È·
+	static uint32_t khz = getCpuKhz();//è¿™ç§æ–¹å¼æ›´ä¸ºå‡†ç¡®
 	return counter() / khz;
 #else
-	struct timeval now = { 0 };//Ê¹ÓÃ¿âº¯Êı»ñµÃÊ±¼ä
+	struct timeval now = { 0 };//ä½¿ç”¨åº“å‡½æ•°è·å¾—æ—¶é—´
 	gettimeofday( &now,NULL );
 	unsigned long long u = now.tv_sec;
 	u *= 1000;
@@ -116,7 +116,7 @@ static unsigned long long GetTickMS()
 #endif
 }
 
-static pid_t GetPid()//»ñÈ¡½ø³ÌID
+static pid_t GetPid()//è·å–è¿›ç¨‹ID
 {
     static __thread pid_t pid = 0;
     static __thread pid_t tid = 0;
@@ -144,7 +144,7 @@ static pid_t GetPid()
 	return p ? *(pid_t*)(p + 18) : getpid();
 }
 */
-//Ê¹ÓÃË«ÏòÁ´±í¹ÜÀíĞ­³Ì£¬ÏÂÃæÊÇ³£¹æµÄÁ´±í²Ù×÷
+//ä½¿ç”¨åŒå‘é“¾è¡¨ç®¡ç†åç¨‹ï¼Œä¸‹é¢æ˜¯å¸¸è§„çš„é“¾è¡¨æ“ä½œ
 template <class T,class TLink>
 void RemoveFromLink(T *ap)
 {
@@ -296,7 +296,7 @@ static stStackMem_t* co_get_stackmem(stShareStack_t* share_stack)
 	{
 		return NULL;
 	}
-	int idx = share_stack->alloc_idx % share_stack->count;
+	int idx = share_stack->alloc_idx % share_stack->count;//å¾ªç¯ä½¿ç”¨
 	share_stack->alloc_idx++;
 
 	return share_stack->stack_array[idx];
@@ -460,12 +460,12 @@ struct stCoRoutine_t *co_create_env( stCoRoutineEnv_t * env, const stCoRoutineAt
 	if( attr ){
 		memcpy( &at,attr,sizeof(at) );
 	}if( at.stack_size <= 0 ){
-		at.stack_size = 128 * 1024;//Ì«Ğ¡ÔòÉè³É128kb
+		at.stack_size = 128 * 1024;//å¤ªå°åˆ™è®¾æˆ128kb
 	}else if( at.stack_size > 1024 * 1024 * 8 ){
-		at.stack_size = 1024 * 1024 * 8;//×î´ó8MB
+		at.stack_size = 1024 * 1024 * 8;//æœ€å¤§8MB
 	}
 
-	if( at.stack_size & 0xFFF ){//1111 1111 1111
+	if( at.stack_size & 0xFFF ){//1111 1111 1111 å¦‚æœä½12ä½éé›¶ï¼Œåˆ™å°†ä½åäºŒä½ç½®é›¶ï¼Œå¹¶è¿›ä¸€ä½ï¼Œå³stack_sizeåº”è¯¥æ˜¯4kbçš„æ•´æ•°å€ x86ä¸€ä¸ªå†…å­˜é¡µå¤§å°æ˜¯4kb,è¿™é‡Œè€ƒè™‘åˆ°å†…å­˜å¯¹é½çš„é—®é¢˜
 		at.stack_size &= ~0xFFF;
 		at.stack_size += 0x1000;
 	}
@@ -473,7 +473,7 @@ struct stCoRoutine_t *co_create_env( stCoRoutineEnv_t * env, const stCoRoutineAt
 	stCoRoutine_t *lp = (stCoRoutine_t*)malloc( sizeof(stCoRoutine_t) );
 
 
-	lp->env = env;
+	lp->env = env;//è®°å½•ä¸‹è¿™ä¸ªco_routineçš„ä¸Šæ–‡
 	lp->pfn = pfn;
 	lp->arg = arg;
 
@@ -539,8 +539,6 @@ void co_resume( stCoRoutine_t *co )
 	}
 	env->pCallStack[ env->iCallStackSize++ ] = co;
 	co_swap( lpCurrRoutine, co );
-
-
 }
 void co_yield_env( stCoRoutineEnv_t *env )
 {
@@ -577,7 +575,7 @@ void save_stack_buffer(stCoRoutine_t* ocupy_co)
 	ocupy_co->save_buffer = (char*)malloc(len); //malloc buf;
 	ocupy_co->save_size = len;
 
-	memcpy(ocupy_co->save_buffer, ocupy_co->stack_sp, len);
+	memcpy(ocupy_co->save_buffer, ocupy_co->stack_sp, len);//å°†è¯¥æ ˆå¸§å­˜èµ·æ¥äº†
 }
 
 void co_swap(stCoRoutine_t* curr, stCoRoutine_t* pending_co)
@@ -585,7 +583,7 @@ void co_swap(stCoRoutine_t* curr, stCoRoutine_t* pending_co)
  	stCoRoutineEnv_t* env = co_get_curr_thread_env();
 
 	//get curr stack sp
-	char c;//c ÊÇco_swapº¯ÊıÀïÃæ×îºóÒ»¸öÉùÃ÷µÄ¾Ö²¿±äÁ¿£¬cËùÔÚµÄÄÚ´æµØÖ·¾ÍÊÇµ±Ç°Õ»¶¥µØÖ·£¬¼´ESP¼Ä´æÆ÷ÄÚ±£´æµÄÖµ
+	char c;//c æ˜¯co_swapå‡½æ•°é‡Œé¢æœ€åä¸€ä¸ªå£°æ˜çš„å±€éƒ¨å˜é‡ï¼Œcæ‰€åœ¨çš„å†…å­˜åœ°å€å°±æ˜¯å½“å‰æ ˆé¡¶åœ°å€ï¼Œå³ESPå¯„å­˜å™¨å†…ä¿å­˜çš„å€¼
 	curr->stack_sp= &c;
 
 	if (!pending_co->cIsShareStack)

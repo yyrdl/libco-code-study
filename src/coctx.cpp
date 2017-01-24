@@ -20,7 +20,7 @@
 #include <string.h>
 
 
-#define ESP 0  //Õ»¶¥Ö¸Õë¼Ä´æÆ÷
+#define ESP 0  //æ ˆé¡¶æŒ‡é’ˆå¯„å­˜å™¨
 #define EIP 1
 #define EAX 2
 #define ECX 3
@@ -96,10 +96,10 @@ int coctx_init( coctx_t *ctx )
 int coctx_make( coctx_t *ctx,coctx_pfn_t pfn,const void *s,const void *s1 )
 {
 	//make room for coctx_param
-	char *sp = ctx->ss_sp + ctx->ss_size - sizeof(coctx_param_t);//·ÖÅä²ÎÊýËùÐèÕ»¿Õ¼ä
+	char *sp = ctx->ss_sp + ctx->ss_size - sizeof(coctx_param_t);//åˆ†é…å‚æ•°æ‰€éœ€æ ˆç©ºé—´
 	sp = (char*)((unsigned long)sp & -16L);
 
-   //½«²ÎÊý´æ·ÅÔÚÕ»ÄÚ
+   //å°†å‚æ•°å­˜æ”¾åœ¨æ ˆå†…
 	coctx_param_t* param = (coctx_param_t*)sp ;
 	param->s1 = s;
 	param->s2 = s1;
