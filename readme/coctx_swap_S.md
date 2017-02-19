@@ -40,10 +40,10 @@
 #endif
 coctx_swap:
 
-#if defined(__i386__)//32位部分汇编代码
+#if defined(__i386__)
 	leal 4(%esp), %eax //sp   R[eax]=R[esp]+4 R[eax]的值应该为coctx_swap的第一个参数在栈中的地址
-	movl 4(%esp), %esp  //    R[esp]=Mem[R[esp]+4] 将esp指向 &(curr->ctx) 当前co_routine 上下文的内存地址
-	leal 32(%esp), %esp //parm a : &regs[7] + sizeof(void*)   R[esp]=R[esp]+32 切换栈顶指针到当前co_routine的上下文变量在栈中的地址
+	movl 4(%esp), %esp  //    R[esp]=Mem[R[esp]+4] 将esp指向 &(curr->ctx) 当前routine 上下文的内存地址，ctx在堆区，现在esp应指向reg[0]
+	leal 32(%esp), %esp //parm a : &regs[7] + sizeof(void*)   push 操作是以esp的值为基准，push一个值,则esp的值减一个单位（因为是按栈区的操作逻辑，从高位往低位分配地址），但ctx是在堆区，所以应将esp指向reg[7]，然后从eax到-4(%eax)push
     //保存寄存器值到栈中，实际对应coctx_t->regs 数组在栈中的位置（参见coctx.h 中coctx_t的定义）
 	pushl %eax //esp ->parm a
 
@@ -53,10 +53,10 @@ coctx_swap:
 	pushl %edx
 	pushl %ecx
 	pushl %ebx
-	pushl -4(%eax) //将函数返回地址压栈，即coctx_swap 之后的指令地址，保存返回地址到coctx_t->regs[0]
+	pushl -4(%eax) //将函数返回地址压栈，即coctx_swap 之后的指令地址，保存返回地址,保存到coctx_t->regs[0]
 
-    //恢复目标co_routine的运行环境（各个寄存器的值和栈状态）
-	movl 4(%eax), %esp //parm b -> &regs[0] //切换esp到目标 co_routine  ctx在栈中的起始地址,这个地址正好对应regs[0]
+    //恢复运行目标routine时的环境（各个寄存器的值和栈状态）
+	movl 4(%eax), %esp //parm b -> &regs[0] //切换esp到目标 routine  ctx在栈中的起始地址,这个地址正好对应regs[0],pop一次 esp会加一个单位的值
 
 	popl %eax  //ret func addr regs[0] 暂存返回地址到 EAX
 	//恢复当时的寄存器状态
@@ -71,10 +71,10 @@ coctx_swap:
 	pushl %eax //set ret func addr
     //将 eax清零
 	xorl %eax, %eax
-	//返回，这里返回之后就切换到目标co_routine了，C++代码中调用coctx_swap的地方之后的代码将得不到立即执行
+	//返回，这里返回之后就切换到目标routine了，C++代码中调用coctx_swap的地方之后的代码将得不到立即执行
 	ret
 
-#elif defined(__x86_64__)//64位部分汇编代码
+#elif defined(__x86_64__)
 	leaq 8(%rsp),%rax
 	leaq 112(%rdi),%rsp
 	pushq %rax
@@ -114,6 +114,7 @@ coctx_swap:
 	xorl %eax, %eax
 	ret
 #endif
+
 ```
 
 # 问题
