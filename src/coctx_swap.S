@@ -39,8 +39,8 @@ coctx_swap:
 
 #if defined(__i386__)
 	leal 4(%esp), %eax //sp   R[eax]=R[esp]+4 R[eax]的值应该为coctx_swap的第一个参数在栈中的地址
-	movl 4(%esp), %esp  //    R[esp]=Mem[R[esp]+4] 将esp指向 &(curr->ctx) 当前routine 上下文的内存地址
-	leal 32(%esp), %esp //parm a : &regs[7] + sizeof(void*)   R[esp]=R[esp]+32 切换栈顶指针到当前routine的上下文变量在栈中的地址
+	movl 4(%esp), %esp  //    R[esp]=Mem[R[esp]+4] 将esp指向 &(curr->ctx) 当前routine 上下文的内存地址，ctx在堆区，现在esp应指向reg[0]
+	leal 32(%esp), %esp //parm a : &regs[7] + sizeof(void*)   push 操作是以esp的值为基准，push一个值,则esp的值减一个单位（因为是按栈区的操作逻辑，从高位往低位分配地址），但ctx是在堆区，所以应将esp指向reg[7]，然后从eax到-4(%eax)push
     //保存寄存器值到栈中，实际对应coctx_t->regs 数组在栈中的位置（参见coctx.h 中coctx_t的定义）
 	pushl %eax //esp ->parm a
 
@@ -53,7 +53,7 @@ coctx_swap:
 	pushl -4(%eax) //将函数返回地址压栈，即coctx_swap 之后的指令地址，保存返回地址,保存到coctx_t->regs[0]
 
     //恢复运行目标routine时的环境（各个寄存器的值和栈状态）
-	movl 4(%eax), %esp //parm b -> &regs[0] //切换esp到目标 routine  ctx在栈中的起始地址,这个地址正好对应regs[0]
+	movl 4(%eax), %esp //parm b -> &regs[0] //切换esp到目标 routine  ctx在栈中的起始地址,这个地址正好对应regs[0],pop一次 esp会加一个单位的值
 
 	popl %eax  //ret func addr regs[0] 暂存返回地址到 EAX
 	//恢复当时的寄存器状态

@@ -1,4 +1,4 @@
-/*
+  /*
 * Tencent is pleased to support the open source community by making Libco available.
 
 * Copyright (C) 2014 THL A29 Limited, a Tencent company. All rights reserved.
@@ -263,24 +263,30 @@ void inline Join( TLink*apLink,TLink *apOther )
 }
 
 /////////////////for copy stack //////////////////////////
+/*
+
+
+*/
 stStackMem_t* co_alloc_stackmem(unsigned int stack_size)
 {
-	stStackMem_t* stack_mem = (stStackMem_t*)malloc(sizeof(stStackMem_t));
-	stack_mem->ocupy_co= NULL;
-	stack_mem->stack_size = stack_size;
-	stack_mem->stack_buffer = (char*)malloc(stack_size);
-	stack_mem->stack_bp = stack_mem->stack_buffer + stack_size;
-	return stack_mem;
+	stStackMem_t* stack_mem = (stStackMem_t*)malloc(sizeof(stStackMem_t));//申请一个stack_mem结构体的空间
+	stack_mem->ocupy_co= NULL;//目前没有co_routine占用这个空间
+	stack_mem->stack_size = stack_size;//设置栈的大小
+	stack_mem->stack_buffer = (char*)malloc(stack_size);//从堆区初始化栈空间，堆区是从低地址往高地址分配，该操作返回分配的内存区域的起始地址,
+	//从stack_mem->stack_buffer到 stack_mem->stack_buffer+stack_size 为此次分配到的内存空间
+	stack_mem->stack_bp = stack_mem->stack_buffer + stack_size;//设置该栈区的基址,栈区地址从高往低走，sp 永远不会大于bp
+	return stack_mem;//返回申请好的栈结构体
 }
-
+//创建一个共享栈区，共count个大小为stack_size的栈空间
 stShareStack_t* co_alloc_sharestack(int count, int stack_size)
 {
 	stShareStack_t* share_stack = (stShareStack_t*)malloc(sizeof(stShareStack_t));
-	share_stack->alloc_idx = 0;
+	share_stack->alloc_idx = 0;//初始化起始的分配游标
 	share_stack->stack_size = stack_size;
 
 	//alloc stack array
 	share_stack->count = count;
+	//初始化栈空间
 	stStackMem_t** stack_array = (stStackMem_t**)calloc(count, sizeof(stStackMem_t*));
 	for (int i = 0; i < count; i++)
 	{
@@ -290,6 +296,7 @@ stShareStack_t* co_alloc_sharestack(int count, int stack_size)
 	return share_stack;
 }
 
+//从共享栈区取一个栈空间 。问题是这里是循环去取，怎么保证不会追尾？
 static stStackMem_t* co_get_stackmem(stShareStack_t* share_stack)
 {
 	if (!share_stack)
@@ -304,6 +311,7 @@ static stStackMem_t* co_get_stackmem(stShareStack_t* share_stack)
 
 
 // ----------------------------------------------------------------------------
+// timeout 时间管理，可以参照event_loop实现中的timeout实现，
 struct stTimeoutItemLink_t;
 struct stTimeoutItem_t;
 struct stCoEpoll_t
@@ -474,24 +482,24 @@ struct stCoRoutine_t *co_create_env( stCoRoutineEnv_t * env, const stCoRoutineAt
 
 
 	lp->env = env;//记录下这个co_routine的上文
-	lp->pfn = pfn;
-	lp->arg = arg;
+	lp->pfn = pfn;//记录下执行的函数
+	lp->arg = arg;//记录下参数
 
 	stStackMem_t* stack_mem = NULL;
-	if( at.share_stack )
+	if( at.share_stack )//如果是使用共享栈，则从共享栈里面拿出一个作为这个co_routine的栈空间
 	{
 		stack_mem = co_get_stackmem( at.share_stack);
 		at.stack_size = at.share_stack->stack_size;
 	}
-	else
-	{
+	else{//否则从堆区申请一块区域
 		stack_mem = co_alloc_stackmem(at.stack_size);
 	}
-	lp->stack_mem = stack_mem;
+	lp->stack_mem = stack_mem;//设置该co_routine的运行栈空间
 
-	lp->ctx.ss_sp = stack_mem->stack_buffer;
-	lp->ctx.ss_size = at.stack_size;
+	lp->ctx.ss_sp = stack_mem->stack_buffer;//设置栈顶指针（相对于bp是低地址）
+	lp->ctx.ss_size = at.stack_size;//记录下栈的大小
 
+    //设置一些标志位
 	lp->cStart = 0;
 	lp->cEnd = 0;
 	lp->cIsMain = 0;
@@ -504,11 +512,14 @@ struct stCoRoutine_t *co_create_env( stCoRoutineEnv_t * env, const stCoRoutineAt
 	return lp;
 }
 
+/*
+  创建一个co_routine ，第一个参数是指向这个co_routine的指针,第二个参数是这个co_routine的一些配置信息，第三个参数是这个co_routine具体执行的函数,第四个是执行参数
+*/
 int co_create( stCoRoutine_t **ppco,const stCoRoutineAttr_t *attr,pfn_co_routine_t pfn,void *arg )
 {
-	if( !co_get_curr_thread_env() )
+	if( !co_get_curr_thread_env() )//如果得不到当前线程的上下文
 	{
-		co_init_curr_thread_env();
+		co_init_curr_thread_env();//则初始化上下文
 	}
 	stCoRoutine_t *co = co_create_env( co_get_curr_thread_env(), attr, pfn,arg );
 	*ppco = co;
@@ -528,18 +539,20 @@ void co_release( stCoRoutine_t *co )
 
 void co_swap(stCoRoutine_t* curr, stCoRoutine_t* pending_co);
 
+//唤醒co
 void co_resume( stCoRoutine_t *co )
 {
 	stCoRoutineEnv_t *env = co->env;
-	stCoRoutine_t *lpCurrRoutine = env->pCallStack[ env->iCallStackSize - 1 ];
-	if( !co->cStart )
+	stCoRoutine_t *lpCurrRoutine = env->pCallStack[ env->iCallStackSize - 1 ];//得到当前的co_routine
+	if( !co->cStart )//如果被唤醒的co没有开始过，则初始化他的CPU上下文
 	{
 		coctx_make( &co->ctx,(coctx_pfn_t)CoRoutineFunc,co,0 );
 		co->cStart = 1;
 	}
-	env->pCallStack[ env->iCallStackSize++ ] = co;
-	co_swap( lpCurrRoutine, co );
+	env->pCallStack[ env->iCallStackSize++ ] = co;//设置当前正在运行的co_routine为co
+	co_swap( lpCurrRoutine, co );//切换co_routine
 }
+//挂起当前的co_routine，切换到上一个co_routine，将当前的co_routine设置为上一个co_routine
 void co_yield_env( stCoRoutineEnv_t *env )
 {
 
@@ -565,17 +578,17 @@ void save_stack_buffer(stCoRoutine_t* ocupy_co)
 {
 	///copy out
 	stStackMem_t* stack_mem = ocupy_co->stack_mem;
-	int len = stack_mem->stack_bp - ocupy_co->stack_sp;
+	int len = stack_mem->stack_bp - ocupy_co->stack_sp;//得到栈大小 ，这里一个问题是stack_sp是栈区的一个地址,而stack_mem->stackbp 的值是通过molloc函数返回的一个地址加上stack_size得到，是堆区的地址，这个两个如何能够相减？？？
 
-	if (ocupy_co->save_buffer)
+	if (ocupy_co->save_buffer)//如果之前有保存过，则释放之前申请的内存,并将指针设为NULL
 	{
 		free(ocupy_co->save_buffer), ocupy_co->save_buffer = NULL;
 	}
 
-	ocupy_co->save_buffer = (char*)malloc(len); //malloc buf;
+	ocupy_co->save_buffer = (char*)malloc(len); //malloc buf;重新申请一个大小为len的内存区域用来保存栈区内容
 	ocupy_co->save_size = len;
 
-	memcpy(ocupy_co->save_buffer, ocupy_co->stack_sp, len);//将该栈帧存起来了
+	memcpy(ocupy_co->save_buffer, ocupy_co->stack_sp, len);//将该栈帧存起来了,这里的copy操作无论是存还是取都是从低位到高位
 }
 
 void co_swap(stCoRoutine_t* curr, stCoRoutine_t* pending_co)
@@ -591,8 +604,7 @@ void co_swap(stCoRoutine_t* curr, stCoRoutine_t* pending_co)
 		env->pending_co = NULL;
 		env->ocupy_co = NULL;
 	}
-	else
-	{
+	else{//在共享栈区的情况下
 		env->pending_co = pending_co;
 		//get last occupy co on the same stack mem
 		stCoRoutine_t* ocupy_co = pending_co->stack_mem->ocupy_co;
@@ -600,14 +612,14 @@ void co_swap(stCoRoutine_t* curr, stCoRoutine_t* pending_co)
 		pending_co->stack_mem->ocupy_co = pending_co;
 
 		env->ocupy_co = ocupy_co;
-		if (ocupy_co && ocupy_co != pending_co)
+		if (ocupy_co && ocupy_co != pending_co)//如果pending_co的栈区内存又被一个co_routine占用，并且该co_routine不是pending_co，则新申请一段内存区域保存下ocupy_co的stack_mem
 		{
 			save_stack_buffer(ocupy_co);
 		}
 	}
 
 	//swap context
-	coctx_swap(&(curr->ctx),&(pending_co->ctx) );
+	coctx_swap(&(curr->ctx),&(pending_co->ctx));
 
 	//stack buffer may be overwrite, so get again;
 	stCoRoutineEnv_t* curr_env = co_get_curr_thread_env();
@@ -683,10 +695,14 @@ static short EpollEvent2Poll( uint32_t events )
 	return e;
 }
 
-static stCoRoutineEnv_t* g_arrCoEnvPerThread[ 204800 ] = { 0 };
+static stCoRoutineEnv_t* g_arrCoEnvPerThread[ 204800 ] = { 0 };//存放上下文的全局静态变量
+
+/*
+  初始化当前线程的上下文
+*/
 void co_init_curr_thread_env()
 {
-	pid_t pid = GetPid();
+	pid_t pid = GetPid();//得到当前线程的上下文
 	g_arrCoEnvPerThread[ pid ] = (stCoRoutineEnv_t*)calloc( 1,sizeof(stCoRoutineEnv_t) );
 	stCoRoutineEnv_t *env = g_arrCoEnvPerThread[ pid ];
 
@@ -697,9 +713,9 @@ void co_init_curr_thread_env()
 	env->pending_co = NULL;
 	env->ocupy_co = NULL;
 
-	coctx_init( &self->ctx );
+	coctx_init( &self->ctx );//初始化寄存器和栈的信息，全部设为空
 
-	env->pCallStack[ env->iCallStackSize++ ] = self;
+	env->pCallStack[ env->iCallStackSize++ ] = self;//设置调用栈，将第一个设成自己
 
 	stCoEpoll_t *ev = AllocEpoll();
 	SetEpoll( env,ev );

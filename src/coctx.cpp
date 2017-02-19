@@ -97,17 +97,19 @@ int coctx_make( coctx_t *ctx,coctx_pfn_t pfn,const void *s,const void *s1 )
 {
 	//make room for coctx_param
 	char *sp = ctx->ss_sp + ctx->ss_size - sizeof(coctx_param_t);//分配参数所需栈空间
-	sp = (char*)((unsigned long)sp & -16L);
+	sp = (char*)((unsigned long)sp & -16L);//将地址低4位置零,地址应该是一个栈区一个存储单位的大小的整数倍
 
-   //将参数存放在栈内
+   //将参数存放在栈内，发生函数调用时，参数是从右往左压栈，即最右边的参数应该在高地址，第一个参数应该在相对的低地址区域
 	coctx_param_t* param = (coctx_param_t*)sp ;
+	//coctx_param_t 的两个参数 s1,s2由于其声明顺序，则s1的地址相对于s2是低地址（其实还会考虑的内存优化，当结构体内部是不同类型参数时，其存储顺序可能与声明顺序不一致，但这里不存在这个问题）
 	param->s1 = s;
 	param->s2 = s1;
 
-	memset(ctx->regs, 0, sizeof(ctx->regs));
+	memset(ctx->regs, 0, sizeof(ctx->regs));//将寄存器信息初始化为0
 
-	ctx->regs[ kESP ] = (char*)(sp) - sizeof(void*);
-	ctx->regs[ kEIP ] = (char*)pfn;
+	ctx->regs[ kESP ] = (char*)(sp) - sizeof(void*);//留出函数调用结束后返回地址的空间
+	
+	ctx->regs[ kEIP ] = (char*)pfn;//设置下一条指令的地址
 
 	return 0;
 }
