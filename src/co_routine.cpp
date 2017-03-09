@@ -579,8 +579,14 @@ void save_stack_buffer(stCoRoutine_t* ocupy_co)
 	///copy out
 	stStackMem_t* stack_mem = ocupy_co->stack_mem;
 	int len = stack_mem->stack_bp - ocupy_co->stack_sp;//得到栈大小 ，这里一个问题是stack_sp是栈区的一个地址,而stack_mem->stackbp 的值是通过molloc函数返回的一个地址加上stack_size得到，是堆区的地址，这个两个如何能够相减？？？
-
-	if (ocupy_co->save_buffer)//如果之前有保存过，则释放之前申请的内存,并将指针设为NULL
+	
+	//答案: 确实 stack_bp 是最初申请stack_mem得到的地址，属于堆区， stack_sp是在下面co_swap这个函数里面通过获取最后一个声明的局部变量的
+	//地址得到，该变量的内存空间确实来自于栈区。 但是此时的栈区并非正常运行的栈区了，这个栈区的内存空间其实来自于堆区。 在初始化coctx结构体
+        //的时候	,也 即coctx_make函数里面，有设置“ctx->regs[ kESP ] = (char*)(sp) - sizeof(void*)” ，预置了ESP 的值，而该值表示的内存地址
+	//来自于堆区。执行汇编代码时就会设置RESP寄存器的值为该值，这样运行时的栈区就不是原本的栈区了。所以这里的stack_bp stack_sp的操作是合理的。
+	
+	
+        if (ocupy_co->save_buffer)//如果之前有保存过，则释放之前申请的内存,并将指针设为NULLt
 	{
 		free(ocupy_co->save_buffer), ocupy_co->save_buffer = NULL;
 	}
