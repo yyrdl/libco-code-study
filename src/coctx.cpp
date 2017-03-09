@@ -107,7 +107,7 @@ int coctx_make( coctx_t *ctx,coctx_pfn_t pfn,const void *s,const void *s1 )
 
 	memset(ctx->regs, 0, sizeof(ctx->regs));//将寄存器信息初始化为0
 
-	ctx->regs[ kESP ] = (char*)(sp) - sizeof(void*);//留出函数调用结束后返回地址的空间
+	ctx->regs[ kESP ] = (char*)(sp) - sizeof(void*);//设置栈顶指针，并留出函数调用结束后返回地址的空间
 	
 	ctx->regs[ kEIP ] = (char*)pfn;//设置下一条指令的地址
 
