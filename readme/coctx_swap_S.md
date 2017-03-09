@@ -120,3 +120,6 @@ coctx_swap:
 # 问题
 
 * 1.随意改变ESP的值不会导致栈分配冲突么？是怎么解决的？to be continue...
+
+答： 运行时栈区不再由系统分配，而是由函数co_create_env 分配，co_create_env会分配最小 128kb最大8MB的内存空间作为一个co_routine的运行时栈空间。
+每次co_routine调度时，系统（汇编部分coctx_swap方法）会保存当前co_routine的栈区到内存，并切换栈区基地址和栈顶地址指针到目标co_routine的基地址和栈顶地址（用过设置对应寄存器的值）。这样就不可能导致栈空间分配冲突。
