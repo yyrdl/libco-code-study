@@ -3,16 +3,16 @@
 
 * Copyright (C) 2014 THL A29 Limited, a Tencent company. All rights reserved.
 *
-* Licensed under the Apache License, Version 2.0 (the "License"); 
-* you may not use this file except in compliance with the License. 
+* Licensed under the Apache License, Version 2.0 (the "License");
+* you may not use this file except in compliance with the License.
 * You may obtain a copy of the License at
 *
 *	http://www.apache.org/licenses/LICENSE-2.0
 *
-* Unless required by applicable law or agreed to in writing, 
-* software distributed under the License is distributed on an "AS IS" BASIS, 
-* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. 
-* See the License for the specific language governing permissions and 
+* Unless required by applicable law or agreed to in writing,
+* software distributed under the License is distributed on an "AS IS" BASIS,
+* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+* See the License for the specific language governing permissions and
 * limitations under the License.
 */
 
@@ -40,8 +40,7 @@ int	co_epoll_create( int size )
 
 struct co_epoll_res *co_epoll_res_alloc( int n )
 {
-	struct co_epoll_res * ptr = 
-		(struct co_epoll_res *)malloc( sizeof( struct co_epoll_res ) );
+	struct co_epoll_res * ptr = (struct co_epoll_res *)malloc( sizeof( struct co_epoll_res ) );
 
 	ptr->size = n;
 	ptr->events = (struct epoll_event*)calloc( 1,n * sizeof( struct epoll_event ) );
@@ -57,7 +56,7 @@ void co_epoll_res_free( struct co_epoll_res * ptr )
 }
 
 #else
-class clsFdMap // million of fd , 1024 * 1024 
+class clsFdMap // million of fd , 1024 * 1024
 {
 private:
 	static const int row_size = 1024;
@@ -73,7 +72,7 @@ public:
 	{
 		for(int i=0;i<sizeof(m_pp)/sizeof(m_pp[0]);i++)
 		{
-			if( m_pp[i] ) 
+			if( m_pp[i] )
 			{
 				free( m_pp[i] );
 				m_pp[i] = NULL;
@@ -93,7 +92,7 @@ public:
 			assert( __LINE__ == 0 );
 			return -__LINE__;
 		}
-		if( !m_pp[ idx ] ) 
+		if( !m_pp[ idx ] )
 		{
 			m_pp[ idx ] = (void**)calloc( 1,sizeof(void*) * col_size );
 		}
@@ -142,7 +141,7 @@ int co_epoll_wait( int epfd,struct co_epoll_res *events,int maxevents,int timeou
 	{
 		t.tv_sec = timeout;
 	}
-	int ret = kevent( epfd, 
+	int ret = kevent( epfd,
 					NULL, 0, //register null
 					events->eventlist, maxevents,//just retrival
 					( -1 == timeout ) ? NULL : &t );
@@ -212,7 +211,7 @@ int co_epoll_ctl( int epfd,int op,int fd,struct epoll_event * ev )
 	}
 
 	const int flags = ( EPOLLIN | EPOLLOUT | EPOLLERR | EPOLLHUP );
-	if( ev->events & ~flags ) 
+	if( ev->events & ~flags )
 	{
 		return -1;
 	}
@@ -243,14 +242,14 @@ int co_epoll_ctl( int epfd,int op,int fd,struct epoll_event * ev )
 	if( EPOLL_CTL_MOD == op )
 	{
 		//1.delete if exists
-		if( ptr->events & EPOLLIN ) 
+		if( ptr->events & EPOLLIN )
 		{
 			struct kevent kev = { 0 };
 			EV_SET( &kev,fd,EVFILT_READ,EV_DELETE,0,0,NULL );
 			kevent( epfd, &kev,1, NULL,0, &t );
-		}	
+		}
 		//1.delete if exists
-		if( ptr->events & EPOLLOUT ) 
+		if( ptr->events & EPOLLOUT )
 		{
 			struct kevent kev = { 0 };
 			EV_SET( &kev,fd,EVFILT_WRITE,EV_DELETE,0,0,NULL );
@@ -263,7 +262,7 @@ int co_epoll_ctl( int epfd,int op,int fd,struct epoll_event * ev )
 	{
 		if( ev->events & EPOLLIN )
 		{
-			
+
 			//2.add
 			struct kevent kev = { 0 };
 			EV_SET( &kev,fd,EVFILT_READ,EV_ADD,0,0,ptr );
@@ -279,7 +278,7 @@ int co_epoll_ctl( int epfd,int op,int fd,struct epoll_event * ev )
 			if( ret ) break;
 		}
 	} while( 0 );
-	
+
 	if( ret )
 	{
 		get_fd_map()->clear( fd );
@@ -289,14 +288,14 @@ int co_epoll_ctl( int epfd,int op,int fd,struct epoll_event * ev )
 
 	ptr->events = ev->events;
 	ptr->u64 = ev->data.u64;
-	 
+
 
 	return ret;
 }
 
 struct co_epoll_res *co_epoll_res_alloc( int n )
 {
-	struct co_epoll_res * ptr = 
+	struct co_epoll_res * ptr =
 		(struct co_epoll_res *)malloc( sizeof( struct co_epoll_res ) );
 
 	ptr->size = n;

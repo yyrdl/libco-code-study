@@ -297,6 +297,10 @@ stShareStack_t* co_alloc_sharestack(int count, int stack_size)
 }
 
 //从共享栈区取一个栈空间 。问题是这里是循环去取，怎么保证不会追尾？
+/*
+ 答： 见co_swap部分对共享栈区的操作，如果分配出去的一个stack_buffer已经被另一个co_routine占用，那么额外申请一块空间保存那个已经存在的co_rountine的栈
+
+*/
 static stStackMem_t* co_get_stackmem(stShareStack_t* share_stack)
 {
 	if (!share_stack)
@@ -579,13 +583,13 @@ void save_stack_buffer(stCoRoutine_t* ocupy_co)
 	///copy out
 	stStackMem_t* stack_mem = ocupy_co->stack_mem;
 	int len = stack_mem->stack_bp - ocupy_co->stack_sp;//得到栈大小 ，这里一个问题是stack_sp是栈区的一个地址,而stack_mem->stackbp 的值是通过molloc函数返回的一个地址加上stack_size得到，是堆区的地址，这个两个如何能够相减？？？
-	
+
 	//答案: 确实 stack_bp 是最初申请stack_mem得到的地址，属于堆区， stack_sp是在下面co_swap这个函数里面通过获取最后一个声明的局部变量的
 	//地址得到，该变量的内存空间确实来自于栈区。 但是此时的栈区并非正常运行的栈区了，这个栈区的内存空间其实来自于堆区。 在初始化coctx结构体
         //的时候	,也 即coctx_make函数里面，有设置“ctx->regs[ kESP ] = (char*)(sp) - sizeof(void*)” ，预置了ESP 的值，而该值表示的内存地址
 	//来自于堆区。执行汇编代码时就会设置RESP寄存器的值为该值，这样运行时的栈区就不是原本的栈区了。所以这里的stack_bp stack_sp的操作是合理的。
-	
-	
+
+
         if (ocupy_co->save_buffer)//如果之前有保存过，则释放之前申请的内存,并将指针设为NULLt
 	{
 		free(ocupy_co->save_buffer), ocupy_co->save_buffer = NULL;
@@ -613,9 +617,9 @@ void co_swap(stCoRoutine_t* curr, stCoRoutine_t* pending_co)
 	else{//在共享栈区的情况下
 		env->pending_co = pending_co;
 		//get last occupy co on the same stack mem
-		stCoRoutine_t* ocupy_co = pending_co->stack_mem->ocupy_co;
+		stCoRoutine_t* ocupy_co = pending_co->stack_mem->ocupy_co;//取出原本占用这块空间的corountine
 		//set pending co to ocupy thest stack mem;
-		pending_co->stack_mem->ocupy_co = pending_co;
+		pending_co->stack_mem->ocupy_co = pending_co;//将这块空间的占有者设置成将要运行的coroutine
 
 		env->ocupy_co = ocupy_co;
 		if (ocupy_co && ocupy_co != pending_co)//如果pending_co的栈区内存又被一个co_routine占用，并且该co_routine不是pending_co，则新申请一段内存区域保存下ocupy_co的stack_mem
@@ -625,10 +629,11 @@ void co_swap(stCoRoutine_t* curr, stCoRoutine_t* pending_co)
 	}
 
 	//swap context
-	coctx_swap(&(curr->ctx),&(pending_co->ctx));
+	coctx_swap(&(curr->ctx),&(pending_co->ctx));//这句代码执行完成后，CPU已经切换到pending_co
 
+	//pending_co 退出，又回到curr
 	//stack buffer may be overwrite, so get again;
-	stCoRoutineEnv_t* curr_env = co_get_curr_thread_env();
+	stCoRoutineEnv_t* curr_env = co_get_curr_thread_env();//得到当前pid对应的env,是当前pid的全局env
 	stCoRoutine_t* update_ocupy_co =  curr_env->ocupy_co;
 	stCoRoutine_t* update_pending_co = curr_env->pending_co;
 
@@ -678,6 +683,23 @@ struct stPollItem_t : public stTimeoutItem_t
  *   				POLLNVAL
  *
  * */
+ /**
+ poll函数的事件标志符值
+
+常量	     说明
+POLLIN	     普通或优先级带数据可读
+POLLRDNORM	 普通数据可读
+POLLRDBAND	 优先级带数据可读
+POLLPRI	     高优先级数据可读
+POLLOUT	     普通数据可写
+POLLWRNORM	 普通数据可写
+POLLWRBAND	 优先级带数据可写
+POLLERR	     发生错误
+POLLHUP	     发生挂起
+POLLNVAL	 描述字不是一个打开的文件
+
+
+ */
 static uint32_t PollEvent2Epoll( short events )
 {
 	uint32_t e = 0;

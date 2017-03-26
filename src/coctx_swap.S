@@ -37,7 +37,7 @@
 #endif
 coctx_swap:
 
-#if defined(__i386__)
+#if defined(__i386__)//在执行下面的汇编代码之前已经执行了将参数压栈，将返回地址压栈的操作，当前esp指向的内存的值应该为下一条指令的地址，即调用coctx_swap之后的指令（见co_routine.cpp co_swap函数）
 	leal 4(%esp), %eax //sp   R[eax]=R[esp]+4 R[eax]的值应该为coctx_swap的第一个参数在栈中的地址
 	movl 4(%esp), %esp  //    R[esp]=Mem[R[esp]+4] 将esp指向 &(curr->ctx) 当前routine 上下文的内存地址，ctx在堆区，现在esp应指向reg[0]
 	leal 32(%esp), %esp //parm a : &regs[7] + sizeof(void*)   push 操作是以esp的值为基准，push一个值,则esp的值减一个单位（因为是按栈区的操作逻辑，从高位往低位分配地址），但ctx是在堆区，所以应将esp指向reg[7]，然后从eax到-4(%eax)push
